@@ -1,73 +1,142 @@
-# Welcome to your Lovable project
+# ProductBoardIQ
 
-## Project info
+> AI agents for product leaders — from onboarding to execution
 
-**URL**: https://lovable.dev/projects/5465231b-8367-4377-9f58-116530ee662d
+ProductBoardIQ combines a lightweight vendor/client onboarding hub with a Product Manager AI workbench powered by multi-agent automation.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+### PM Workbench
+- **Strategy Agent**: Generate product briefs, North Star metrics, and roadmaps
+- **Research Agent**: Synthesize feedback, cluster themes, identify opportunities
+- **Planning Agent**: Create user stories, acceptance criteria, and sprint plans
+- **GTM Agent**: Draft personas, messaging, and launch checklists
+- **Automation Agent**: Sync to Calendar and Notion, export artifacts
 
-**Use Lovable**
+### Onboarding Hub
+- 4-step wizard with AI risk scoring
+- Automated compliance routing
+- Vendor and client onboarding
+- Immutable audit trails
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/5465231b-8367-4377-9f58-116530ee662d) and start prompting.
+## Quick Start
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
+- Node.js 18+ and npm
+- At least one AI provider API key (Gemini or OpenAI)
 
-**Use your preferred IDE**
+### Setup
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+```bash
+# 1. Clone the repository
+git clone <your-repo-url>
+cd productboardiq
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# 2. Install dependencies
+npm install
 
-Follow these steps:
+# 3. Configure environment
+cp .env.local.example .env.local
+# Edit .env.local and add your API keys
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4. Start development servers
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app will be available at `http://localhost:8080`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Environment Variables
 
-**Use GitHub Codespaces**
+Required (at least one):
+```bash
+GEMINI_API_KEY=your_gemini_api_key
+# or
+OPENAI_API_KEY=your_openai_api_key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Optional integrations:
+```bash
+ELEVENLABS_API_KEY=your_elevenlabs_key
+NOTION_API_KEY=your_notion_key
+GOOGLE_CALENDAR_CREDENTIALS_JSON=your_credentials
+```
 
-## What technologies are used for this project?
+## Demo Script
 
-This project is built with:
+### 2-Minute PM Workbench Demo
+1. Navigate to **Overview** → Click "Try PM Workbench"
+2. **Strategy Agent**: Enter market, segment, goals → Generate strategy (10s)
+3. **Research Agent**: Paste feedback → Analyze insights
+4. **Planning Agent**: Add requirements → Generate backlog and sprint plan
+5. **Export**: Download artifacts as CSV/Markdown
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 90-Second Onboarding Demo
+1. Navigate to **Overview** → Click "Try Onboarding"
+2. Complete 4-step wizard (Company Info → Docs → Controls → Review)
+3. View AI risk score and routing decision
+4. Check **Audit Trail** for immutable events
 
-## How can I deploy this project?
+### Judge Mode
+- Toggle "Judge Mode" in top bar to preload demo data
+- Perfect for quick 2-minute pitches
 
-Simply open [Lovable](https://lovable.dev/projects/5465231b-8367-4377-9f58-116530ee662d) and click on Share -> Publish.
+## Tech Stack
 
-## Can I connect a custom domain to my Lovable project?
+- **Frontend**: Vite + React + TypeScript, TailwindCSS, shadcn/ui
+- **State**: Zustand
+- **Charts**: Recharts
+- **API**: Express serverless functions
+- **AI**: Google Gemini (default) or OpenAI
+- **Voice**: ElevenLabs TTS (optional)
+- **Integrations**: Google Calendar + Notion (optional, mocked by default)
 
-Yes, you can!
+## API Endpoints
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Health check:
+```bash
+curl http://localhost:8787/api/health
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Test risk scoring:
+```bash
+curl -X POST http://localhost:8787/api/risk-score \
+  -H "Content-Type: application/json" \
+  -d '{
+    "controls": {
+      "iam": false,
+      "encryption": true,
+      "logging": true
+    },
+    "handlesPII": true
+  }'
+```
+
+## Deployment
+
+### Vercel
+1. Connect your repository to Vercel
+2. Add environment variables in project settings
+3. Deploy (serverless functions auto-detected in `/api/*`)
+
+The development Express server is only for local development. In production, Vercel will handle the API routes as serverless functions.
+
+## Architecture
+
+```
+src/
+├── components/      # UI components (TopBar, Navigation, Layout)
+├── pages/          # Route pages (Overview, Workbench, Admin, etc.)
+├── lib/            # Utilities, types, store, API client
+└── hooks/          # React hooks
+
+server/
+└── index.ts        # Express dev server (proxied by Vite)
+```
+
+## License
+
+MIT
+
+---
+
+Built with ❤️ using Lovable

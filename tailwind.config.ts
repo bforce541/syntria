@@ -57,6 +57,15 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        surface: {
+          1: "hsl(var(--surface-1))",
+          2: "hsl(var(--surface-2))",
+          3: "hsl(var(--surface-3))",
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        heading: ['Sora', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
