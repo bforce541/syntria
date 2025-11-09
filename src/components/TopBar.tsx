@@ -1,8 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { useAppStore } from "@/lib/store";
 import syntriaLogo from "@/assets/syntria-logo.png";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   Select,
   SelectContent,
@@ -15,10 +14,10 @@ export const TopBar = () => {
   const { 
     currentProject, 
     projects, 
-    setCurrentProject, 
-    judgeModeEnabled, 
-    setJudgeModeEnabled 
+    setCurrentProject
   } = useAppStore();
+  
+  const { theme, setTheme } = useTheme();
 
   return (
     <header className="h-14 border-b border-border bg-surface-1 flex items-center justify-between px-6">
@@ -51,16 +50,17 @@ export const TopBar = () => {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Switch
-            id="judge-mode"
-            checked={judgeModeEnabled}
-            onCheckedChange={setJudgeModeEnabled}
-          />
-          <Label htmlFor="judge-mode" className="text-sm font-medium cursor-pointer">
-            Judge Mode
-          </Label>
-        </div>
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="p-2 rounded-lg hover:bg-accent transition-colors"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? (
+            <Sun className="h-5 w-5" />
+          ) : (
+            <Moon className="h-5 w-5" />
+          )}
+        </button>
       </div>
     </header>
   );
