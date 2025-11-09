@@ -104,4 +104,9 @@ export interface OnboardingFormData {
     network: boolean;
   };
   handlesPII: boolean;
+  uploadedFiles?: Array<{
+    name: string;
+    type: string;
+    base64: string;
+  }>;
 }

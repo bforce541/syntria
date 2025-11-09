@@ -181,8 +181,7 @@ app.post('/api/pm/automation/notion', async (req, res) => {
   }
 });
 
-// Risk scoring
-// Find the /api/risk-score endpoint and replace with:
+// Risk scoring with document analysis
 app.post('/api/risk-score', async (req, res) => {
   const data = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
@@ -198,23 +197,56 @@ app.post('/api/risk-score', async (req, res) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
-    const prompt = `Analyze this vendor/client onboarding data and assess risk:
+    // Build multimodal content
+    const parts: any[] = [
+      {
+        text: `You are a risk analyst. Analyze this vendor/client onboarding data and uploaded documents.
+
 Company: ${data.companyName} (${data.companyType})
 Country: ${data.country}
-Has Controls: ${data.hasControls ? 'Yes' : 'No'}
-Has PII: ${data.hasPII ? 'Yes' : 'No'}
-Documents: ${data.documents?.join(', ') || 'None'}
+Contact: ${data.contactEmail}
+EIN: ${data.ein}
+Has Security Controls: ${data.hasControls ? 'Yes' : 'No'}
+Handles PII: ${data.hasPII ? 'Yes' : 'No'}
+Document Checklist: ${data.documents?.join(', ') || 'None'}
+Uploaded Files: ${data.uploadedFiles?.length || 0}
 
-Return risk level (LOW/MEDIUM/HIGH) and 2-3 specific reasons.`;
+${data.uploadedFiles?.length > 0 ? 'ANALYZE THE UPLOADED DOCUMENTS BELOW. Look for:\n- Insurance coverage amounts and expiry dates\n- SOC2/ISO certifications and scope\n- Security policies and controls\n- Contract terms and liability clauses\n- W9 accuracy and completeness\n- Any red flags or compliance gaps' : ''}
 
-    const result = await model.generateContent(prompt);
+Return risk level (LOW/MEDIUM/HIGH) and 3-5 specific, actionable reasons based on the documents and data provided.`
+      }
+    ];
+
+    // Add uploaded files as images/documents
+    if (data.uploadedFiles && data.uploadedFiles.length > 0) {
+      for (const file of data.uploadedFiles) {
+        parts.push({
+          inlineData: {
+            mimeType: file.type || 'application/pdf',
+            data: file.base64
+          }
+        });
+      }
+    }
+
+    const result = await model.generateContent(parts);
     const text = result.response.text();
     
-    // Parse response (add JSON schema in production)
-    const riskLevel = text.includes('HIGH') ? 'HIGH' : text.includes('MEDIUM') ? 'MEDIUM' : 'LOW';
-    const reasons = text.split('\n').filter(l => l.trim().startsWith('-')).map(l => l.trim().substring(1).trim());
+    console.log('Gemini risk analysis:', text);
     
-    res.json({ riskLevel, reasons, score: riskLevel === 'HIGH' ? 85 : riskLevel === 'MEDIUM' ? 55 : 25 });
+    // Parse response
+    const riskLevel = text.includes('HIGH') ? 'HIGH' : text.includes('MEDIUM') ? 'MEDIUM' : 'LOW';
+    const reasons = text.split('\n')
+      .filter(l => l.trim().startsWith('-') || l.trim().match(/^\d+\./))
+      .map(l => l.trim().replace(/^[-\d+.]\s*/, ''))
+      .filter(r => r.length > 0)
+      .slice(0, 5);
+    
+    res.json({ 
+      riskLevel, 
+      reasons: reasons.length > 0 ? reasons : ['Analysis complete based on submitted documents'], 
+      score: riskLevel === 'HIGH' ? 85 : riskLevel === 'MEDIUM' ? 55 : 25 
+    });
   } catch (err) {
     console.error('Gemini error:', err);
     const score = calculateFallbackScore(data);

@@ -29,6 +29,11 @@ interface OnboardingForm {
   documents: string[];
   hasControls: boolean;
   hasPII: boolean;
+  uploadedFiles: Array<{
+    name: string;
+    type: string;
+    base64: string;
+  }>;
 }
 
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
@@ -54,6 +59,7 @@ export default function Onboarding() {
     documents: [],
     hasControls: false,
     hasPII: false,
+    uploadedFiles: [],
   });
 
   const [riskResult, setRiskResult] = useState<RiskResult | null>(null);
@@ -102,7 +108,37 @@ export default function Onboarding() {
     }
   };
 
-  const progress = (step / 4) * 100;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const filePromises = Array.from(files).map(file => {
+      return new Promise<{ name: string; type: string; base64: string }>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          resolve({
+            name: file.name,
+            type: file.type,
+            base64: base64.split(',')[1], // Remove data:image/png;base64, prefix
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    const uploadedFiles = await Promise.all(filePromises);
+    setFormData({ ...formData, uploadedFiles: [...formData.uploadedFiles, ...uploadedFiles] });
+  };
+
+  const removeFile = (index: number) => {
+    setFormData({
+      ...formData,
+      uploadedFiles: formData.uploadedFiles.filter((_, i) => i !== index),
+    });
+  };
+
+  const progress = (step / 5) * 100;
 
   return (
     <div className="container mx-auto p-6 max-w-3xl">
@@ -177,7 +213,61 @@ export default function Onboarding() {
       {step === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Step 2: Documents</CardTitle>
+            <CardTitle>Step 2: Upload Documents</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="border-2 border-dashed rounded-lg p-6 text-center">
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-upload"
+              />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <div className="space-y-2">
+                  <div className="text-4xl">📄</div>
+                  <p className="text-sm font-medium">Upload compliance documents</p>
+                  <p className="text-xs text-muted-foreground">
+                    PDFs, Word docs, images (SOC2, Insurance, W9, etc.)
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {formData.uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Uploaded Files:</p>
+                {formData.uploadedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
+                    <span className="text-sm truncate flex-1">{file.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep(1)}>
+                Back
+              </Button>
+              <Button onClick={() => setStep(3)}>Next</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === 3 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Step 3: Document Checklist</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {docs.map((doc) => {
@@ -201,19 +291,19 @@ export default function Onboarding() {
               );
             })}
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(1)}>
+              <Button variant="outline" onClick={() => setStep(2)}>
                 Back
               </Button>
-              <Button onClick={() => setStep(3)}>Next</Button>
+              <Button onClick={() => setStep(4)}>Next</Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <Card>
           <CardHeader>
-            <CardTitle>Step 3: Controls &amp; PII</CardTitle>
+            <CardTitle>Step 4: Controls &amp; PII</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -235,19 +325,19 @@ export default function Onboarding() {
               <Label>Handles PII/Sensitive Data</Label>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep(2)}>
+              <Button variant="outline" onClick={() => setStep(3)}>
                 Back
               </Button>
-              <Button onClick={() => setStep(4)}>Next</Button>
+              <Button onClick={() => setStep(5)}>Next</Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <Card>
           <CardHeader>
-            <CardTitle>Step 4: Review &amp; Submit</CardTitle>
+            <CardTitle>Step 5: Review &amp; Submit</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {!riskResult ? (
@@ -260,7 +350,10 @@ export default function Onboarding() {
                     <strong>Type:</strong> {formData.companyType}
                   </p>
                   <p>
-                    <strong>Documents:</strong>{" "}
+                    <strong>Uploaded Files:</strong> {formData.uploadedFiles.length}
+                  </p>
+                  <p>
+                    <strong>Document Checklist:</strong>{" "}
                     {formData.documents.join(", ") || "None"}
                   </p>
                   <p>
@@ -272,11 +365,11 @@ export default function Onboarding() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setStep(3)}>
+                  <Button variant="outline" onClick={() => setStep(4)}>
                     Back
                   </Button>
                   <Button onClick={handleSubmit} disabled={loading}>
-                    {loading ? "Analyzing..." : "Submit"}
+                    {loading ? "Analyzing documents..." : "Submit"}
                   </Button>
                 </div>
               </>
@@ -324,6 +417,7 @@ export default function Onboarding() {
                       documents: [],
                       hasControls: false,
                       hasPII: false,
+                      uploadedFiles: [],
                     });
                   }}
                 >
