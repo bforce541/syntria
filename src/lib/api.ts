@@ -44,12 +44,9 @@ export const runPlanningAgent = (input: any) =>
 export const runGTMAgent = (input: any) => 
   apiCall<any>('/pm/gtm', { method: 'POST', body: JSON.stringify(input) });
 
-// Automation
-export const createCalendarEvents = (events: any[]) => 
-  apiCall<any>('/pm/automation/calendar', { method: 'POST', body: JSON.stringify({ events }) });
-
-export const syncToNotion = (content: any) => 
-  apiCall<any>('/pm/automation/notion', { method: 'POST', body: JSON.stringify(content) });
+// Automation - sync to calendar via n8n
+export const syncStrategyToCalendar = (strategyData: any) => 
+  apiCall<any>('/sync-to-calendar', { method: 'POST', body: JSON.stringify({ strategyData }) });
 
 // Risk scoring
 export const calculateRiskScore = (data: any) => 

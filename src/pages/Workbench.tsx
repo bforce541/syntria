@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Target, Search, ListChecks, Megaphone, Zap, Download } from "lucide-react";
-import { runStrategyAgent, runResearchAgent, runPlanningAgent, runGTMAgent, createCalendarEvents, syncToNotion } from "@/lib/api";
+import { Loader2, Target, Search, ListChecks, Megaphone, Download } from "lucide-react";
+import { runStrategyAgent, runResearchAgent, runPlanningAgent, runGTMAgent, syncStrategyToCalendar } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Workbench() {
   const { toast } = useToast();
@@ -37,10 +38,6 @@ export default function Workbench() {
   const [gtmCompetitors, setGtmCompetitors] = useState("");
   const [timeline, setTimeline] = useState("");
 
-  // Automation inputs
-  const [automationType, setAutomationType] = useState<"calendar" | "notion">("calendar");
-  const [notionWorkspace, setNotionWorkspace] = useState("");
-  const [notionPage, setNotionPage] = useState("");
 
   const handleStrategy = async () => {
     setLoading(true);
@@ -53,10 +50,25 @@ export default function Workbench() {
         constraints: constraints.split('\n').filter(Boolean),
       });
       setResult(response);
-      toast({
-        title: "Strategy Generated",
-        description: "Your product strategy brief is ready",
-      });
+      
+      // Automatically sync to calendar via n8n
+      try {
+        const { data: syncData } = await supabase.functions.invoke('sync-to-calendar', {
+          body: { strategyData: response.data }
+        });
+        
+        toast({
+          title: "Strategy Generated & Synced",
+          description: `Strategy created and ${syncData?.eventsCount || 0} events sent to your calendar`,
+        });
+      } catch (syncError: any) {
+        console.error('Calendar sync error:', syncError);
+        toast({
+          title: "Strategy Generated",
+          description: "Strategy created but calendar sync failed. Check your n8n webhook.",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -145,41 +157,6 @@ export default function Workbench() {
     }
   };
 
-  const handleAutomation = async () => {
-    setLoading(true);
-    try {
-      if (automationType === "calendar") {
-        const events = result?.data?.sprints?.map((sprint: any) => ({
-          title: sprint.name,
-          date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        })) || [];
-        
-        const response = await createCalendarEvents(events);
-        toast({
-          title: "Calendar Updated",
-          description: response.data.message,
-        });
-      } else {
-        const response = await syncToNotion({
-          content: result?.data,
-          workspace: notionWorkspace,
-          page: notionPage,
-        });
-        toast({
-          title: "Synced to Notion",
-          description: response.data.message,
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -213,10 +190,6 @@ export default function Workbench() {
           <TabsTrigger value="gtm" className="flex items-center gap-2">
             <Megaphone className="w-4 h-4" />
             GTM
-          </TabsTrigger>
-          <TabsTrigger value="automation" className="flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            Automation
           </TabsTrigger>
         </TabsList>
 
@@ -676,80 +649,6 @@ export default function Workbench() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-        <TabsContent value="automation" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Automation Agent</CardTitle>
-              <CardDescription>
-                Export and sync your PM artifacts to Calendar and Notion
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Automation Type</Label>
-                <div className="flex gap-4">
-                  <Button
-                    variant={automationType === "calendar" ? "default" : "outline"}
-                    onClick={() => setAutomationType("calendar")}
-                    className="flex-1"
-                  >
-                    Calendar Sync
-                  </Button>
-                  <Button
-                    variant={automationType === "notion" ? "default" : "outline"}
-                    onClick={() => setAutomationType("notion")}
-                    className="flex-1"
-                  >
-                    Notion Export
-                  </Button>
-                </div>
-              </div>
-
-              {automationType === "notion" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="notion-workspace">Notion Workspace</Label>
-                    <Input
-                      id="notion-workspace"
-                      placeholder="My Workspace"
-                      value={notionWorkspace}
-                      onChange={(e) => setNotionWorkspace(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notion-page">Parent Page (Optional)</Label>
-                    <Input
-                      id="notion-page"
-                      placeholder="PM Docs"
-                      value={notionPage}
-                      onChange={(e) => setNotionPage(e.target.value)}
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="p-4 bg-surface-2 rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  {automationType === "calendar" 
-                    ? "This will create calendar events for sprint milestones from your Planning results."
-                    : "This will export your current workbench results to a Notion page."}
-                </p>
-              </div>
-
-              <Button onClick={handleAutomation} disabled={loading || !result}>
-                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {automationType === "calendar" ? "Create Calendar Events" : "Export to Notion"}
-              </Button>
-
-              {!result && (
-                <p className="text-sm text-muted-foreground">
-                  Run a Strategy, Research, or Planning agent first to enable automation.
-                </p>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

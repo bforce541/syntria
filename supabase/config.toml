@@ -1,0 +1,4 @@
+project_id = "vvemiaosqxlwmuosqpih"
+
+[functions.sync-to-calendar]
+verify_jwt = false
