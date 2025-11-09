@@ -109,7 +109,7 @@ export default function Overview() {
         <div className="grid md:grid-cols-4 gap-6">
           {[{
           label: "AI Agents",
-          value: "5+"
+          value: "4+"
         }, {
           label: "Time Saved",
           value: "70%"
