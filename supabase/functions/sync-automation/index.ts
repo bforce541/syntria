@@ -11,14 +11,16 @@ serve(async (req) => {
   }
 
   try {
-    const { data } = await req.json();
+    const requestData = await req.json();
     const AUTOMATION_WEBHOOK_URL = Deno.env.get('AUTOMATION_WEBHOOK_URL');
+
+    console.log('Automation webhook URL check:', AUTOMATION_WEBHOOK_URL ? 'configured' : 'missing');
 
     if (!AUTOMATION_WEBHOOK_URL) {
       throw new Error('AUTOMATION_WEBHOOK_URL not configured');
     }
 
-    console.log('Sending data to automation webhook');
+    console.log('Sending data to automation webhook:', requestData);
 
     const response = await fetch(AUTOMATION_WEBHOOK_URL, {
       method: 'POST',
@@ -26,14 +28,18 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
-        data,
+        ...requestData,
         timestamp: new Date().toISOString(),
         source: 'automation-tab'
       }),
     });
 
+    console.log('Webhook response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`Automation webhook returned ${response.status}`);
+      const errorText = await response.text();
+      console.error('Webhook error:', errorText);
+      throw new Error(`Automation webhook returned ${response.status}: ${errorText}`);
     }
 
     console.log('Successfully sent to automation webhook');
