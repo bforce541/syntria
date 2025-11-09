@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Sparkles } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import syntriaLogo from "@/assets/syntria-logo.png";
 import {
   Select,
   SelectContent,
@@ -24,10 +24,7 @@ export const TopBar = () => {
     <header className="h-14 border-b border-border bg-surface-1 flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="font-heading font-bold text-lg">Syntria</span>
+          <img src={syntriaLogo} alt="Syntria" className="h-8" />
         </div>
 
         {projects.length > 0 && (
