@@ -16,6 +16,9 @@ export interface Entity {
   owner: string;
   createdAt: string;
   lastUpdated: string;
+  decommissionReason?: string;
+  decommissionedAt?: string;
+  reactivatedAt?: string;
 }
 
 export interface AuditEvent {
