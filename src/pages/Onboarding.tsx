@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { calculateRiskScore, createAuditEvent } from "@/lib/api";
+import { calculateRiskScore, createAuditEvent, createEntity } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -65,6 +65,22 @@ export default function Onboarding() {
     try {
       const result = (await calculateRiskScore(formData)) as RiskResult;
       setRiskResult(result);
+
+      // Create entity
+      await createEntity({
+        name: formData.companyName,
+        type: formData.companyType,
+        riskLevel: result.riskLevel,
+        compliance: formData.documents.length >= 3 ? "Pass" : formData.documents.length >= 1 ? "Partial" : "Fail",
+        status: "Active",
+        owner: "system",
+        contactEmail: formData.contactEmail,
+        ein: formData.ein,
+        country: formData.country,
+        documents: formData.documents,
+        hasControls: formData.hasControls,
+        hasPII: formData.hasPII,
+      });
 
       await createAuditEvent({
         action: "onboarding_complete",

@@ -233,10 +233,29 @@ function calculateFallbackScore(data: any) {
 }
 
 
+// In-memory storage
+const entities: any[] = [];
+const auditEvents: any[] = [];
+
 // Entities
 app.get('/api/entities', async (req, res) => {
   try {
-    res.json([]);
+    res.json(entities);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/entities', async (req, res) => {
+  try {
+    const entity = {
+      id: `entity-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      ...req.body
+    };
+    entities.push(entity);
+    res.json(entity);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -245,7 +264,7 @@ app.get('/api/entities', async (req, res) => {
 // Audit
 app.get('/api/audit', async (req, res) => {
   try {
-    res.json([]);
+    res.json(auditEvents);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -253,7 +272,14 @@ app.get('/api/audit', async (req, res) => {
 
 app.post('/api/audit', async (req, res) => {
   try {
-    res.json({ success: true });
+    const event = {
+      id: `audit-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      entityName: req.body.entityId || 'Unknown',
+      ...req.body
+    };
+    auditEvents.push(event);
+    res.json(event);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
