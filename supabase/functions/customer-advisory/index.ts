@@ -13,6 +13,7 @@ serve(async (req) => {
   try {
     const { messages } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const CUSTOMER_WEBHOOK_URL = Deno.env.get('CUSTOMER_WEBHOOK_URL');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
@@ -68,6 +69,24 @@ Be concise, actionable, and focused on practical PM best practices.`
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Send conversation to n8n webhook for logging/processing
+    if (CUSTOMER_WEBHOOK_URL) {
+      try {
+        await fetch(CUSTOMER_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            messages,
+            timestamp: new Date().toISOString() 
+          }),
+        });
+        console.log('Conversation sent to n8n webhook');
+      } catch (webhookError) {
+        console.error('Failed to send to webhook:', webhookError);
+        // Don't fail the main request if webhook fails
+      }
     }
 
     return new Response(response.body, {

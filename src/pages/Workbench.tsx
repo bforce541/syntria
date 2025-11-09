@@ -166,7 +166,7 @@ export default function Workbench() {
     if (!result?.data) {
       toast({
         title: "No Data",
-        description: "Run Strategy or Research first to sync results",
+        description: "Run Strategy or Customer Advisory first to sync results",
         variant: "destructive",
       });
       return;
@@ -174,12 +174,12 @@ export default function Workbench() {
 
     setLoading(true);
     try {
-      const syncResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-to-calendar`, {
+      const syncResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-automation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ strategyData: result.data }),
+        body: JSON.stringify({ data: result.data }),
       });
       
       if (!syncResponse.ok) {
@@ -189,14 +189,14 @@ export default function Workbench() {
       const syncData = await syncResponse.json();
       
       toast({
-        title: "Synced to Calendar",
-        description: `${syncData?.eventsCount || 0} events sent to your n8n workflow`,
+        title: "Synced to Automation",
+        description: "Data sent to your automation workflow",
       });
     } catch (error: any) {
       console.error('Calendar sync error:', error);
       toast({
         title: "Sync Failed",
-        description: "Check your n8n webhook URL configuration",
+        description: "Check your automation webhook URL configuration",
         variant: "destructive",
       });
     } finally {
@@ -427,13 +427,15 @@ export default function Workbench() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 bg-surface-2 rounded-lg">
-                <h4 className="font-medium mb-2">Auto-Sync Enabled</h4>
+                <h4 className="font-medium mb-2">Webhooks Configured</h4>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Strategy deliverables automatically sync to your n8n workflow when generated.
+                  Each agent sends data to its dedicated n8n webhook:
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  You can also manually trigger a sync below for any current results.
-                </p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• <span className="font-medium">Strategy</span> - Auto-syncs on generation</li>
+                  <li>• <span className="font-medium">Customer Advisory</span> - Sends conversations in background</li>
+                  <li>• <span className="font-medium">Automation</span> - Manual trigger below</li>
+                </ul>
               </div>
 
               <Button 
@@ -443,19 +445,25 @@ export default function Workbench() {
               >
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 <Zap className="w-4 h-4 mr-2" />
-                Sync to Calendar Now
+                Sync to Automation Webhook
               </Button>
 
               {!result && (
                 <p className="text-sm text-muted-foreground text-center">
-                  Run Strategy or Research first to enable manual sync.
+                  Run Strategy or Customer Advisory first to enable manual sync.
                 </p>
               )}
 
               <div className="p-4 bg-muted/50 rounded-lg border border-border">
-                <h4 className="font-medium mb-2 text-sm">Configuration</h4>
+                <h4 className="font-medium mb-2 text-sm">How It Works</h4>
+                <p className="text-xs text-muted-foreground mb-2">
+                  • <strong>Strategy Agent</strong>: Automatically sends events to Strategy webhook when you generate a strategy
+                </p>
+                <p className="text-xs text-muted-foreground mb-2">
+                  • <strong>Customer Advisory</strong>: Logs conversations to Customer webhook in background
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  Your n8n webhook URL is securely stored. Events will be sent as JSON with deliverables and dates.
+                  • <strong>Manual Sync</strong>: Use the button above to send current results to Automation webhook
                 </p>
               </div>
             </CardContent>

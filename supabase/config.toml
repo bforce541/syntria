@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.customer-advisory]
 verify_jwt = false
+
+[functions.sync-automation]
+verify_jwt = false

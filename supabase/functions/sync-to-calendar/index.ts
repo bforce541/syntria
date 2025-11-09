@@ -12,10 +12,10 @@ serve(async (req) => {
 
   try {
     const { strategyData } = await req.json();
-    const N8N_WEBHOOK_URL = Deno.env.get('N8N_WEBHOOK_URL');
+    const STRATEGY_WEBHOOK_URL = Deno.env.get('STRATEGY_WEBHOOK_URL');
 
-    if (!N8N_WEBHOOK_URL) {
-      throw new Error('N8N_WEBHOOK_URL not configured');
+    if (!STRATEGY_WEBHOOK_URL) {
+      throw new Error('STRATEGY_WEBHOOK_URL not configured');
     }
 
     console.log('Sending strategy data to n8n webhook');
@@ -41,7 +41,7 @@ serve(async (req) => {
     }
 
     // Send to n8n
-    const response = await fetch(N8N_WEBHOOK_URL, {
+    const response = await fetch(STRATEGY_WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
