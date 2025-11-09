@@ -25,6 +25,7 @@ export const TopBar = () => {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <img src={syntriaLogo} alt="Syntria" className="h-8" />
+          <span className="font-heading font-bold text-lg">Syntria</span>
         </div>
 
         {projects.length > 0 && (
