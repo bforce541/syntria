@@ -287,6 +287,18 @@ app.get('/api/entities', async (req, res) => {
   }
 });
 
+app.get('/api/entities/:id', async (req, res) => {
+  try {
+    const entity = entities.find(e => e.id === req.params.id);
+    if (!entity) {
+      return res.status(404).json({ error: 'Entity not found' });
+    }
+    res.json(entity);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/entities', async (req, res) => {
   try {
     const entity = {
@@ -297,6 +309,23 @@ app.post('/api/entities', async (req, res) => {
     };
     entities.push(entity);
     res.json(entity);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/entities/:id', async (req, res) => {
+  try {
+    const index = entities.findIndex(e => e.id === req.params.id);
+    if (index === -1) {
+      return res.status(404).json({ error: 'Entity not found' });
+    }
+    entities[index] = {
+      ...entities[index],
+      ...req.body,
+      lastUpdated: new Date().toISOString(),
+    };
+    res.json(entities[index]);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

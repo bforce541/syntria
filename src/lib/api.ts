@@ -62,8 +62,14 @@ export const calculateRiskScore = (data: any) =>
 export const getEntities = () => 
   apiCall<any[]>('/entities');
 
+export const getEntity = (id: string) =>
+  apiCall<any>(`/entities/${id}`);
+
 export const createEntity = (entity: any) =>
   apiCall<any>('/entities', { method: 'POST', body: JSON.stringify(entity) });
+
+export const updateEntity = (id: string, entity: any) =>
+  apiCall<any>(`/entities/${id}`, { method: 'PUT', body: JSON.stringify(entity) });
 
 // Audit
 export const getAuditEvents = () => 

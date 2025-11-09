@@ -8,6 +8,7 @@ import Overview from "./pages/Overview";
 import Workbench from "./pages/Workbench";
 import Onboarding from "./pages/Onboarding";
 import Risk from "./pages/Risk";
+import EntityDetail from "./pages/EntityDetail";
 import Decommission from "./pages/Decommission";
 import Audit from "./pages/Audit";
 import Reports from "./pages/Reports";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/workbench" element={<Layout><Workbench /></Layout>} />
           <Route path="/onboarding" element={<Layout><Onboarding /></Layout>} />
           <Route path="/risk" element={<Layout><Risk /></Layout>} />
+          <Route path="/entities/:id" element={<Layout><EntityDetail /></Layout>} />
           <Route path="/decommission" element={<Layout><Decommission /></Layout>} />
           <Route path="/audit" element={<Layout><Audit /></Layout>} />
           <Route path="/reports" element={<Layout><Reports /></Layout>} />

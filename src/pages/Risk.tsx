@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,7 @@ import { Search, Filter, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { Entity, RiskLevel, ComplianceStatus } from "@/lib/types";
 
 export default function Risk() {
+  const navigate = useNavigate();
   const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -226,7 +228,11 @@ export default function Risk() {
                 </TableHeader>
                 <TableBody>
                   {filteredEntities.map((entity) => (
-                    <TableRow key={entity.id}>
+                    <TableRow 
+                      key={entity.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/entities/${entity.id}`)}
+                    >
                       <TableCell className="font-medium">{entity.name}</TableCell>
                       <TableCell className="capitalize">{entity.type}</TableCell>
                       <TableCell>
