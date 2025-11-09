@@ -38,16 +38,6 @@ export const runStrategyAgent = (input: any) =>
 export const runResearchAgent = (input: any) => 
   apiCall<any>('/pm/research', { method: 'POST', body: JSON.stringify(input) });
 
-export const runPlanningAgent = (input: any) => 
-  apiCall<any>('/pm/planning', { method: 'POST', body: JSON.stringify(input) });
-
-export const runGTMAgent = (input: any) => 
-  apiCall<any>('/pm/gtm', { method: 'POST', body: JSON.stringify(input) });
-
-// Automation - sync to calendar via n8n
-export const syncStrategyToCalendar = (strategyData: any) => 
-  apiCall<any>('/sync-to-calendar', { method: 'POST', body: JSON.stringify({ strategyData }) });
-
 // Risk scoring
 export const calculateRiskScore = (data: any) => 
   apiCall<{ riskLevel: string; reasons: string[]; score: number }>('/risk-score', {

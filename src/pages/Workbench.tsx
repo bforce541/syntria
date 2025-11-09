@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Target, Search, ListChecks, Megaphone, Download } from "lucide-react";
-import { runStrategyAgent, runResearchAgent, runPlanningAgent, runGTMAgent, syncStrategyToCalendar } from "@/lib/api";
+import { Loader2, Target, Search, Zap, Download } from "lucide-react";
+import { runStrategyAgent, runResearchAgent } from "@/lib/api";
 
 export default function Workbench() {
   const { toast } = useToast();
@@ -25,17 +25,6 @@ export default function Workbench() {
   const [feedback, setFeedback] = useState("");
   const [competitors, setCompetitors] = useState("");
   const [trends, setTrends] = useState("");
-
-  // Planning inputs
-  const [requirements, setRequirements] = useState("");
-  const [planningConstraints, setPlanningConstraints] = useState("");
-
-  // GTM inputs
-  const [product, setProduct] = useState("");
-  const [targetAudience, setTargetAudience] = useState("");
-  const [valueProps, setValueProps] = useState("");
-  const [gtmCompetitors, setGtmCompetitors] = useState("");
-  const [timeline, setTimeline] = useState("");
 
 
   const handleStrategy = async () => {
@@ -114,51 +103,41 @@ export default function Workbench() {
     }
   };
 
-  const handlePlanning = async () => {
-    setLoading(true);
-    setResult(null);
-    try {
-      const response = await runPlanningAgent({
-        requirements: requirements.split('\n').filter(Boolean),
-        constraints: planningConstraints.split('\n').filter(Boolean),
-        sprintLength: 2,
-      });
-      setResult(response);
+  const handleManualSync = async () => {
+    if (!result?.data) {
       toast({
-        title: "Planning Complete",
-        description: "Backlog and sprint plan generated",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
+        title: "No Data",
+        description: "Run Strategy or Research first to sync results",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
 
-  const handleGTM = async () => {
     setLoading(true);
-    setResult(null);
     try {
-      const response = await runGTMAgent({
-        product,
-        targetAudience,
-        valueProps: valueProps.split('\n').filter(Boolean),
-        competitors: gtmCompetitors.split('\n').filter(Boolean),
-        timeline,
+      const syncResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-to-calendar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ strategyData: result.data }),
       });
-      setResult(response);
+      
+      if (!syncResponse.ok) {
+        throw new Error('Sync failed');
+      }
+      
+      const syncData = await syncResponse.json();
+      
       toast({
-        title: "GTM Strategy Generated",
-        description: "Personas, messaging, and launch plan ready",
+        title: "Synced to Calendar",
+        description: `${syncData?.eventsCount || 0} events sent to your n8n workflow`,
       });
     } catch (error: any) {
+      console.error('Calendar sync error:', error);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Sync Failed",
+        description: "Check your n8n webhook URL configuration",
         variant: "destructive",
       });
     } finally {
@@ -192,13 +171,9 @@ export default function Workbench() {
             <Search className="w-4 h-4" />
             Research
           </TabsTrigger>
-          <TabsTrigger value="planning" className="flex items-center gap-2">
-            <ListChecks className="w-4 h-4" />
-            Planning
-          </TabsTrigger>
-          <TabsTrigger value="gtm" className="flex items-center gap-2">
-            <Megaphone className="w-4 h-4" />
-            GTM
+          <TabsTrigger value="automation" className="flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            Automation
           </TabsTrigger>
         </TabsList>
 
@@ -402,262 +377,49 @@ export default function Workbench() {
           )}
         </TabsContent>
 
-        <TabsContent value="planning" className="space-y-6">
+        <TabsContent value="automation" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Planning Agent</CardTitle>
+              <CardTitle>Automation</CardTitle>
               <CardDescription>
-                Generate user stories, acceptance criteria, and prioritized backlog
+                Sync your PM artifacts to external tools via n8n webhook
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="requirements">Requirements (one per line)</Label>
-                <Textarea
-                  id="requirements"
-                  placeholder="Users need to export data&#10;Add SSO authentication&#10;Improve dashboard performance"
-                  className="min-h-[150px]"
-                  value={requirements}
-                  onChange={(e) => setRequirements(e.target.value)}
-                />
+              <div className="p-4 bg-surface-2 rounded-lg">
+                <h4 className="font-medium mb-2">Auto-Sync Enabled</h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Strategy deliverables automatically sync to your n8n workflow when generated.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  You can also manually trigger a sync below for any current results.
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="planning-constraints">Planning Constraints</Label>
-                <Textarea
-                  id="planning-constraints"
-                  placeholder="2-week sprints&#10;3 engineers available&#10;Must ship by end of Q2"
-                  value={planningConstraints}
-                  onChange={(e) => setPlanningConstraints(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={handlePlanning} disabled={loading || !requirements}>
+              <Button 
+                onClick={handleManualSync} 
+                disabled={loading || !result}
+                className="w-full"
+              >
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Generate Plan
+                <Zap className="w-4 h-4 mr-2" />
+                Sync to Calendar Now
               </Button>
+
+              {!result && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Run Strategy or Research first to enable manual sync.
+                </p>
+              )}
+
+              <div className="p-4 bg-muted/50 rounded-lg border border-border">
+                <h4 className="font-medium mb-2 text-sm">Configuration</h4>
+                <p className="text-xs text-muted-foreground">
+                  Your n8n webhook URL is securely stored. Events will be sent as JSON with deliverables and dates.
+                </p>
+              </div>
             </CardContent>
           </Card>
-
-          {result && activeTab === "planning" && result.data && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Sprint Plan & Backlog</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">User Stories</h3>
-                  {result.data.userStories?.map((story: any, idx: number) => (
-                    <div key={idx} className="mb-4 p-4 bg-surface-2 rounded-lg">
-                      <h4 className="font-medium mb-2">{story.title}</h4>
-                      <p className="text-sm mb-2">{story.description}</p>
-                      <div className="flex gap-2 mb-2">
-                        <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
-                          {story.priority}
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-accent/10 text-accent rounded">
-                          {story.effort} points
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">Acceptance Criteria:</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {story.acceptanceCriteria?.map((criteria: string, i: number) => (
-                          <li key={i} className="text-sm">{criteria}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Sprint Allocation</h3>
-                  {result.data.sprints?.map((sprint: any, idx: number) => (
-                    <div key={idx} className="mb-3 p-3 bg-surface-2 rounded-lg">
-                      <h4 className="font-medium mb-1">{sprint.name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Stories: {sprint.stories?.join(", ") || "None"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="gtm" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>GTM Agent</CardTitle>
-              <CardDescription>
-                Generate personas, positioning, messaging, and go-to-market launch plans
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="product">Product Name</Label>
-                  <Input
-                    id="product"
-                    placeholder="e.g., Syntria PM Suite"
-                    value={product}
-                    onChange={(e) => setProduct(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="target-audience">Target Audience</Label>
-                  <Input
-                    id="target-audience"
-                    placeholder="e.g., Enterprise Product Teams"
-                    value={targetAudience}
-                    onChange={(e) => setTargetAudience(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="value-props">Value Propositions (one per line)</Label>
-                <Textarea
-                  id="value-props"
-                  placeholder="Save 10+ hours per week&#10;Integrate in minutes&#10;Enterprise-grade security"
-                  className="min-h-[100px]"
-                  value={valueProps}
-                  onChange={(e) => setValueProps(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="gtm-competitors">Competitors (one per line)</Label>
-                <Textarea
-                  id="gtm-competitors"
-                  placeholder="Competitor A&#10;Competitor B"
-                  value={gtmCompetitors}
-                  onChange={(e) => setGtmCompetitors(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="timeline">Launch Timeline</Label>
-                <Input
-                  id="timeline"
-                  placeholder="e.g., 4 weeks"
-                  value={timeline}
-                  onChange={(e) => setTimeline(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={handleGTM} disabled={loading || !product}>
-                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Generate GTM Strategy
-              </Button>
-            </CardContent>
-          </Card>
-
-          {result && activeTab === "gtm" && result.data && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Go-To-Market Strategy</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Target Personas</h3>
-                  {result.data.personas?.map((persona: any, idx: number) => (
-                    <div key={idx} className="mb-4 p-4 bg-surface-2 rounded-lg">
-                      <h4 className="font-medium mb-1">{persona.name}</h4>
-                      <p className="text-sm text-muted-foreground mb-2">{persona.role}</p>
-                      
-                      <div className="grid md:grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <p className="font-medium mb-1">Goals:</p>
-                          <ul className="list-disc list-inside space-y-0.5">
-                            {persona.goals?.map((goal: string, i: number) => (
-                              <li key={i}>{goal}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <p className="font-medium mb-1">Pain Points:</p>
-                          <ul className="list-disc list-inside space-y-0.5">
-                            {persona.painPoints?.map((pain: string, i: number) => (
-                              <li key={i}>{pain}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-
-                      <div className="mt-2">
-                        <p className="font-medium text-sm mb-1">Channels:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {persona.channels?.map((channel: string, i: number) => (
-                            <span key={i} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
-                              {channel}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Positioning & Messaging</h3>
-                  <div className="p-4 bg-surface-2 rounded-lg space-y-3">
-                    <div>
-                      <p className="font-medium mb-1">Headline:</p>
-                      <p className="text-foreground">{result.data.positioning?.headline}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium mb-1">Tagline:</p>
-                      <p className="text-muted-foreground">{result.data.positioning?.tagline}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium mb-1">Key Messages:</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {result.data.positioning?.keyMessages?.map((msg: string, i: number) => (
-                          <li key={i}>{msg}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Launch Plan</h3>
-                  <p className="text-sm text-muted-foreground mb-3">Timeline: {result.data.launchPlan?.timeline}</p>
-                  {result.data.launchPlan?.phases?.map((phase: any, idx: number) => (
-                    <div key={idx} className="mb-3 p-4 bg-surface-2 rounded-lg">
-                      <h4 className="font-medium mb-2">{phase.name}</h4>
-                      <ul className="list-disc list-inside space-y-1 text-sm">
-                        {phase.activities?.map((activity: string, i: number) => (
-                          <li key={i}>{activity}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Marketing Channels</h3>
-                  <div className="grid md:grid-cols-2 gap-3">
-                    {result.data.channels?.map((channel: any, idx: number) => (
-                      <div key={idx} className="p-3 bg-surface-2 rounded-lg">
-                        <h4 className="font-medium mb-1">{channel.name}</h4>
-                        <p className="text-sm text-muted-foreground mb-1">Budget: {channel.budget}</p>
-                        <p className="text-sm">Expected: {channel.expected}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Competitive Positioning</h3>
-                  <p className="text-foreground p-4 bg-surface-2 rounded-lg">
-                    {result.data.competitivePosition}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
       </Tabs>
     </div>
