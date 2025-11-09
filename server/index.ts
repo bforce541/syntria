@@ -182,34 +182,56 @@ app.post('/api/pm/automation/notion', async (req, res) => {
 });
 
 // Risk scoring
+// Find the /api/risk-score endpoint and replace with:
 app.post('/api/risk-score', async (req, res) => {
+  const data = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+  
+  if (!apiKey) {
+    // Fallback to rule-based
+    const score = calculateFallbackScore(data);
+    return res.json(score);
+  }
+
   try {
-    const data = req.body;
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    const prompt = `Analyze this vendor/client onboarding data and assess risk:
+Company: ${data.companyName} (${data.companyType})
+Country: ${data.country}
+Has Controls: ${data.hasControls ? 'Yes' : 'No'}
+Has PII: ${data.hasPII ? 'Yes' : 'No'}
+Documents: ${data.documents?.join(', ') || 'None'}
+
+Return risk level (LOW/MEDIUM/HIGH) and 2-3 specific reasons.`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
     
-    // Simple rule-based scoring
-    let score = 0;
-    const reasons: string[] = [];
+    // Parse response (add JSON schema in production)
+    const riskLevel = text.includes('HIGH') ? 'HIGH' : text.includes('MEDIUM') ? 'MEDIUM' : 'LOW';
+    const reasons = text.split('\n').filter(l => l.trim().startsWith('-')).map(l => l.trim().substring(1).trim());
     
-    if (!data.controls?.iam) {
-      score += 30;
-      reasons.push('Missing IAM controls');
-    }
-    if (!data.controls?.encryption) {
-      score += 25;
-      reasons.push('No encryption at rest');
-    }
-    if (data.handlesPII) {
-      score += 20;
-      reasons.push('Handles PII data');
-    }
-    
-    const riskLevel = score > 50 ? 'HIGH' : score > 25 ? 'MEDIUM' : 'LOW';
-    
-    res.json({ riskLevel, reasons, score });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.json({ riskLevel, reasons, score: riskLevel === 'HIGH' ? 85 : riskLevel === 'MEDIUM' ? 55 : 25 });
+  } catch (err) {
+    console.error('Gemini error:', err);
+    const score = calculateFallbackScore(data);
+    res.json(score);
   }
 });
+
+function calculateFallbackScore(data: any) {
+  let score = 20;
+  if (data.hasPII) score += 30;
+  if (!data.hasControls) score += 25;
+  if (data.country !== 'USA') score += 15;
+  
+  const riskLevel = score > 70 ? 'HIGH' : score > 40 ? 'MEDIUM' : 'LOW';
+  return { riskLevel, reasons: ['Rule-based fallback'], score };
+}
+
 
 // Entities
 app.get('/api/entities', async (req, res) => {
