@@ -15,13 +15,18 @@ app.use(express.json());
 // Health check
 app.get('/api/health', async (req, res) => {
   try {
-    const provider = process.env.GEMINI_API_KEY ? 'gemini' : 
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const provider = geminiKey ? 'gemini' : 
                     process.env.OPENAI_API_KEY ? 'openai' : 'none';
+    
+    console.log('🔍 Health check - GEMINI_API_KEY present:', !!geminiKey);
+    console.log('🔍 Key length:', geminiKey?.length || 0);
     
     res.json({
       ok: true,
       provider,
       hasKey: provider !== 'none',
+      keyLength: geminiKey?.length || 0,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -186,8 +191,11 @@ app.post('/api/risk-score', async (req, res) => {
   const data = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
   
+  console.log('🔑 Risk score - API key present:', !!apiKey);
+  console.log('🔑 Key length:', apiKey?.length || 0);
+  
   if (!apiKey) {
-    // Fallback to rule-based
+    console.log('❌ No API key found - using fallback');
     const score = calculateFallbackScore(data);
     return res.json(score);
   }
@@ -247,10 +255,11 @@ Return risk level (LOW/MEDIUM/HIGH) and 3-5 specific, actionable reasons based o
       reasons: reasons.length > 0 ? reasons : ['Analysis complete based on submitted documents'], 
       score: riskLevel === 'HIGH' ? 85 : riskLevel === 'MEDIUM' ? 55 : 25 
     });
-  } catch (err) {
-    console.error('Gemini error:', err);
+  } catch (err: any) {
+    console.error('❌ Gemini API error:', err.message);
+    console.error('Full error:', err);
     const score = calculateFallbackScore(data);
-    res.json(score);
+    res.json({ ...score, error: `Gemini failed: ${err.message}` });
   }
 });
 
