@@ -122,7 +122,7 @@ export default function Workbench() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+        <TabsList className="w-full flex flex-wrap">
           <TabsTrigger value="strategy" className="flex items-center gap-2">
             <Target className="w-4 h-4" />
             Strategy
