@@ -1,18 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Briefcase, UserPlus, Shield, Zap, Target, Users } from "lucide-react";
-
+import { Briefcase, UserPlus, Shield, Zap, Target, Users } from "lucide-react";
 export default function Overview() {
   const navigate = useNavigate();
-
-  return (
-    <div className="min-h-screen bg-gradient-surface">
+  return <div className="min-h-screen bg-gradient-surface">
       {/* Hero Section */}
       <section className="container mx-auto px-6 py-20">
         <div className="text-center max-w-4xl mx-auto space-y-6">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-2 border border-border">
-            <Sparkles className="w-4 h-4 text-primary" />
+            
             <span className="text-sm font-medium">AI-Powered Product Management</span>
           </div>
           
@@ -26,19 +23,11 @@ export default function Overview() {
           </p>
 
           <div className="flex flex-wrap gap-4 justify-center pt-6">
-            <Button 
-              size="lg" 
-              className="gradient-primary text-primary-foreground hover:opacity-90 shadow-glow"
-              onClick={() => navigate('/workbench')}
-            >
+            <Button size="lg" className="gradient-primary text-primary-foreground hover:opacity-90 shadow-glow" onClick={() => navigate('/workbench')}>
               <Briefcase className="w-5 h-5 mr-2" />
               Try PM Workbench
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={() => navigate('/onboarding')}
-            >
+            <Button size="lg" variant="outline" onClick={() => navigate('/onboarding')}>
               <UserPlus className="w-5 h-5 mr-2" />
               Try Onboarding
             </Button>
@@ -118,21 +107,26 @@ export default function Overview() {
       {/* Quick Metrics */}
       <section className="container mx-auto px-6 py-16">
         <div className="grid md:grid-cols-4 gap-6">
-          {[
-            { label: "AI Agents", value: "5+" },
-            { label: "Time Saved", value: "70%" },
-            { label: "Auto Artifacts", value: "15+" },
-            { label: "Risk Score Accuracy", value: "95%" },
-          ].map((metric) => (
-            <Card key={metric.label} className="bg-surface-2 border-border text-center">
+          {[{
+          label: "AI Agents",
+          value: "5+"
+        }, {
+          label: "Time Saved",
+          value: "70%"
+        }, {
+          label: "Auto Artifacts",
+          value: "15+"
+        }, {
+          label: "Risk Score Accuracy",
+          value: "95%"
+        }].map(metric => <Card key={metric.label} className="bg-surface-2 border-border text-center">
               <CardHeader>
                 <CardTitle className="font-heading text-4xl text-primary">
                   {metric.value}
                 </CardTitle>
                 <CardDescription className="text-base">{metric.label}</CardDescription>
               </CardHeader>
-            </Card>
-          ))}
+            </Card>)}
         </div>
       </section>
 
@@ -146,23 +140,14 @@ export default function Overview() {
             Start with a 2-minute PM Workbench demo or try the 90-second onboarding flow
           </p>
           <div className="flex flex-wrap gap-4 justify-center pt-4">
-            <Button 
-              size="lg" 
-              className="gradient-primary text-primary-foreground hover:opacity-90"
-              onClick={() => navigate('/workbench')}
-            >
+            <Button size="lg" className="gradient-primary text-primary-foreground hover:opacity-90" onClick={() => navigate('/workbench')}>
               Start Demo
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={() => navigate('/admin')}
-            >
+            <Button size="lg" variant="outline" onClick={() => navigate('/admin')}>
               Configure Settings
             </Button>
           </div>
         </div>
       </section>
-    </div>
-  );
+    </div>;
 }
