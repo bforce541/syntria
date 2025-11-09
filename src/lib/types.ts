@@ -19,6 +19,9 @@ export interface Entity {
   decommissionReason?: string;
   decommissionedAt?: string;
   reactivatedAt?: string;
+  hasControls?: boolean;
+  hasPII?: boolean;
+  documents?: string[];
 }
 
 export interface AuditEvent {
