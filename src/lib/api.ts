@@ -35,9 +35,6 @@ export const checkHealth = () =>
 export const runStrategyAgent = (input: any) => 
   apiCall<any>('/pm/strategy', { method: 'POST', body: JSON.stringify(input) });
 
-export const runResearchAgent = (input: any) => 
-  apiCall<any>('/pm/research', { method: 'POST', body: JSON.stringify(input) });
-
 // Risk scoring
 export const calculateRiskScore = (data: any) => 
   apiCall<{ riskLevel: string; reasons: string[]; score: number }>('/risk-score', {

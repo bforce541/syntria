@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Target, Search, Zap, Download } from "lucide-react";
-import { runStrategyAgent, runResearchAgent } from "@/lib/api";
+import { Loader2, Target, MessageSquare, Zap, Download } from "lucide-react";
+import { runStrategyAgent } from "@/lib/api";
 
 export default function Workbench() {
   const { toast } = useToast();
@@ -21,10 +22,9 @@ export default function Workbench() {
   const [goals, setGoals] = useState("");
   const [constraints, setConstraints] = useState("");
 
-  // Research inputs
-  const [feedback, setFeedback] = useState("");
-  const [competitors, setCompetitors] = useState("");
-  const [trends, setTrends] = useState("");
+  // Customer Advisory chat
+  const [advisoryMessages, setAdvisoryMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
+  const [advisoryInput, setAdvisoryInput] = useState("");
 
 
   const handleStrategy = async () => {
@@ -79,18 +79,77 @@ export default function Workbench() {
   };
 
   const handleResearch = async () => {
+    if (!advisoryInput.trim()) return;
+
+    const userMessage = { role: 'user' as const, content: advisoryInput };
+    setAdvisoryMessages(prev => [...prev, userMessage]);
+    setAdvisoryInput("");
     setLoading(true);
-    setResult(null);
+
     try {
-      const response = await runResearchAgent({
-        feedback,
-        competitors: competitors.split('\n').filter(Boolean),
-        trends: trends.split('\n').filter(Boolean),
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/customer-advisory`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          messages: [...advisoryMessages, userMessage]
+        }),
       });
-      setResult(response);
+
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to get response');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let assistantMessage = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantMessage += content;
+              setAdvisoryMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant') {
+                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantMessage } : m));
+                }
+                return [...prev, { role: 'assistant', content: assistantMessage }];
+              });
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
       toast({
-        title: "Research Complete",
-        description: "Insights and themes have been clustered",
+        title: "Response Complete",
+        description: "Advisory guidance generated",
       });
     } catch (error: any) {
       toast({
@@ -167,9 +226,9 @@ export default function Workbench() {
             <Target className="w-4 h-4" />
             Strategy
           </TabsTrigger>
-          <TabsTrigger value="research" className="flex items-center gap-2">
-            <Search className="w-4 h-4" />
-            Research
+          <TabsTrigger value="advisory" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Customer Advisory
           </TabsTrigger>
           <TabsTrigger value="automation" className="flex items-center gap-2">
             <Zap className="w-4 h-4" />
@@ -291,90 +350,71 @@ export default function Workbench() {
           )}
         </TabsContent>
 
-        <TabsContent value="research" className="space-y-6">
-          <Card>
+        <TabsContent value="advisory" className="space-y-6">
+          <Card className="h-[600px] flex flex-col">
             <CardHeader>
-              <CardTitle>Research Agent</CardTitle>
+              <CardTitle>Customer Advisory AI</CardTitle>
               <CardDescription>
-                Synthesize feedback, cluster themes, and identify opportunities
+                Get expert guidance on PM communication, stakeholder management, and customer discovery
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="feedback">User Feedback</Label>
-                <Textarea
-                  id="feedback"
-                  placeholder="Paste user feedback, survey responses, or interview notes..."
-                  className="min-h-[150px]"
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="competitors">Competitors (one per line)</Label>
-                <Textarea
-                  id="competitors"
-                  placeholder="Competitor A&#10;Competitor B&#10;Competitor C"
-                  value={competitors}
-                  onChange={(e) => setCompetitors(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="trends">Market Trends (one per line)</Label>
-                <Textarea
-                  id="trends"
-                  placeholder="AI automation increasing&#10;Remote work tools growing&#10;Privacy regulations tightening"
-                  value={trends}
-                  onChange={(e) => setTrends(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={handleResearch} disabled={loading || !feedback}>
-                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Analyze Research
-              </Button>
-            </CardContent>
-          </Card>
-
-          {result && activeTab === "research" && result.data && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Research Insights</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Key Themes</h3>
-                  {result.data.themes?.map((theme: any, idx: number) => (
-                    <div key={idx} className="mb-4 p-4 bg-surface-2 rounded-lg">
-                      <h4 className="font-medium mb-2">{theme.name}</h4>
-                      <p className="text-sm text-muted-foreground mb-2">Supporting Feedback:</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {theme.examples?.map((example: string, i: number) => (
-                          <li key={i} className="text-sm">{example}</li>
-                        ))}
+            <CardContent className="flex-1 flex flex-col gap-4 overflow-hidden">
+              <ScrollArea className="flex-1 pr-4">
+                <div className="space-y-4">
+                  {advisoryMessages.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-sm">Ask for help with:</p>
+                      <ul className="text-sm mt-2 space-y-1">
+                        <li>• Drafting stakeholder emails</li>
+                        <li>• Customer interview questions</li>
+                        <li>• Analyzing feedback</li>
+                        <li>• Decision frameworks</li>
                       </ul>
+                    </div>
+                  )}
+                  {advisoryMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-4 rounded-lg ${
+                        msg.role === 'user'
+                          ? 'bg-primary/10 ml-8'
+                          : 'bg-surface-2 mr-8'
+                      }`}
+                    >
+                      <div className="text-xs font-medium mb-2 opacity-70">
+                        {msg.role === 'user' ? 'You' : 'Advisory AI'}
+                      </div>
+                      <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
                     </div>
                   ))}
                 </div>
+              </ScrollArea>
 
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Opportunities</h3>
-                  <ul className="list-disc list-inside space-y-2">
-                    {result.data.opportunities?.map((opp: string, idx: number) => (
-                      <li key={idx}>{opp}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Competitive Insights</h3>
-                  <p className="text-foreground whitespace-pre-wrap">{result.data.competitive}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Ask for PM guidance... (e.g., 'Help me draft an email to stakeholders about a delayed feature')"
+                  value={advisoryInput}
+                  onChange={(e) => setAdvisoryInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleResearch();
+                    }
+                  }}
+                  className="min-h-[80px]"
+                  disabled={loading}
+                />
+                <Button 
+                  onClick={handleResearch} 
+                  disabled={loading || !advisoryInput.trim()}
+                  className="px-6"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="automation" className="space-y-6">
