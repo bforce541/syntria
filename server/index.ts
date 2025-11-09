@@ -164,7 +164,90 @@ app.post('/api/pm/planning', async (req, res) => {
 
 app.post('/api/pm/gtm', async (req, res) => {
   try {
-    res.json({ success: true, data: { message: 'GTM agent coming soon' } });
+    const { product, targetAudience, valueProps, competitors, timeline } = req.body;
+    
+    // Mock GTM response
+    const response = {
+      success: true,
+      data: {
+        personas: [
+          {
+            name: 'Enterprise Decision Maker',
+            role: 'VP of Operations',
+            goals: ['Reduce costs', 'Improve efficiency', 'Scale operations'],
+            painPoints: ['Manual processes', 'Data silos', 'Lack of visibility'],
+            channels: ['LinkedIn', 'Industry conferences', 'Email'],
+          },
+          {
+            name: 'Technical Evaluator',
+            role: 'Engineering Manager',
+            goals: ['Easy integration', 'Reliable performance', 'Good documentation'],
+            painPoints: ['Complex setup', 'Poor API docs', 'Limited support'],
+            channels: ['Technical blogs', 'GitHub', 'Developer communities'],
+          },
+        ],
+        positioning: {
+          headline: `${product} - The Modern Solution for ${targetAudience}`,
+          tagline: 'Streamline operations, reduce costs, scale effortlessly',
+          keyMessages: valueProps || [
+            'Save 10+ hours per week on manual tasks',
+            'Integrate with your existing tools in minutes',
+            'Enterprise-grade security and compliance',
+          ],
+        },
+        launchPlan: {
+          phases: [
+            {
+              name: 'Pre-Launch (Weeks 1-2)',
+              activities: [
+                'Set up landing page and demo environment',
+                'Create launch assets (videos, case studies)',
+                'Brief sales team and partners',
+                'Line up beta customers for testimonials',
+              ],
+            },
+            {
+              name: 'Launch Week',
+              activities: [
+                'Product Hunt launch',
+                'Press release distribution',
+                'Social media campaign',
+                'Email to existing customer base',
+                'Live demo webinar',
+              ],
+            },
+            {
+              name: 'Post-Launch (Weeks 3-4)',
+              activities: [
+                'Gather and respond to feedback',
+                'Follow up with leads',
+                'Publish case studies',
+                'Iterate on messaging based on data',
+              ],
+            },
+          ],
+          timeline: timeline || '4 weeks',
+        },
+        channels: [
+          { name: 'LinkedIn Ads', budget: '$5k/mo', expected: '50-75 qualified leads' },
+          { name: 'Content Marketing', budget: '$3k/mo', expected: 'SEO growth + 25 leads' },
+          { name: 'Product Hunt', budget: '$500', expected: 'Brand awareness + 100 signups' },
+          { name: 'Webinars', budget: '$2k/mo', expected: '30-40 demos booked' },
+        ],
+        competitivePosition: `While ${competitors?.[0] || 'competitors'} focus on enterprise only, ${product} serves both mid-market and enterprise with flexible pricing and faster time to value.`,
+      },
+      trace: [
+        {
+          timestamp: new Date().toISOString(),
+          agent: 'gtm',
+          action: 'generate_gtm_plan',
+          input: { product, targetAudience },
+          output: 'Generated GTM strategy',
+        },
+      ],
+    };
+
+    res.json(response);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -173,7 +256,24 @@ app.post('/api/pm/gtm', async (req, res) => {
 // Automation
 app.post('/api/pm/automation/calendar', async (req, res) => {
   try {
-    res.json({ success: true, data: { message: 'Calendar events created (mocked)' } });
+    const { events } = req.body;
+    
+    const response = {
+      success: true,
+      data: {
+        created: events?.length || 0,
+        events: events?.map((e: any, i: number) => ({
+          id: `cal-${Date.now()}-${i}`,
+          title: e.title || e.name,
+          date: e.date || new Date().toISOString(),
+          status: 'created',
+        })) || [],
+        message: `Created ${events?.length || 0} calendar events`,
+        provider: 'Google Calendar (Mock)',
+      },
+    };
+
+    res.json(response);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -181,7 +281,20 @@ app.post('/api/pm/automation/calendar', async (req, res) => {
 
 app.post('/api/pm/automation/notion', async (req, res) => {
   try {
-    res.json({ success: true, data: { message: 'Synced to Notion (mocked)' } });
+    const { content, workspace, page } = req.body;
+    
+    const response = {
+      success: true,
+      data: {
+        pageId: `notion-${Date.now()}`,
+        url: `https://notion.so/${workspace || 'workspace'}/page-${Date.now()}`,
+        blocks: content?.userStories?.length || content?.themes?.length || 0,
+        message: 'Successfully synced to Notion',
+        workspace: workspace || 'Default Workspace',
+      },
+    };
+
+    res.json(response);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

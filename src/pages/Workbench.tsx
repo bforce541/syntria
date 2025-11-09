@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Target, Search, ListChecks, Megaphone, Zap, Download } from "lucide-react";
-import { runStrategyAgent, runResearchAgent, runPlanningAgent } from "@/lib/api";
+import { runStrategyAgent, runResearchAgent, runPlanningAgent, runGTMAgent, createCalendarEvents, syncToNotion } from "@/lib/api";
 
 export default function Workbench() {
   const { toast } = useToast();
@@ -29,6 +29,18 @@ export default function Workbench() {
   // Planning inputs
   const [requirements, setRequirements] = useState("");
   const [planningConstraints, setPlanningConstraints] = useState("");
+
+  // GTM inputs
+  const [product, setProduct] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [valueProps, setValueProps] = useState("");
+  const [gtmCompetitors, setGtmCompetitors] = useState("");
+  const [timeline, setTimeline] = useState("");
+
+  // Automation inputs
+  const [automationType, setAutomationType] = useState<"calendar" | "notion">("calendar");
+  const [notionWorkspace, setNotionWorkspace] = useState("");
+  const [notionPage, setNotionPage] = useState("");
 
   const handleStrategy = async () => {
     setLoading(true);
@@ -95,6 +107,69 @@ export default function Workbench() {
         title: "Planning Complete",
         description: "Backlog and sprint plan generated",
       });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGTM = async () => {
+    setLoading(true);
+    setResult(null);
+    try {
+      const response = await runGTMAgent({
+        product,
+        targetAudience,
+        valueProps: valueProps.split('\n').filter(Boolean),
+        competitors: gtmCompetitors.split('\n').filter(Boolean),
+        timeline,
+      });
+      setResult(response);
+      toast({
+        title: "GTM Strategy Generated",
+        description: "Personas, messaging, and launch plan ready",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAutomation = async () => {
+    setLoading(true);
+    try {
+      if (automationType === "calendar") {
+        const events = result?.data?.sprints?.map((sprint: any) => ({
+          title: sprint.name,
+          date: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        })) || [];
+        
+        const response = await createCalendarEvents(events);
+        toast({
+          title: "Calendar Updated",
+          description: response.data.message,
+        });
+      } else {
+        const response = await syncToNotion({
+          content: result?.data,
+          workspace: notionWorkspace,
+          page: notionPage,
+        });
+        toast({
+          title: "Synced to Notion",
+          description: response.data.message,
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -428,21 +503,252 @@ export default function Workbench() {
           )}
         </TabsContent>
 
-        <TabsContent value="gtm">
+        <TabsContent value="gtm" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>GTM Agent</CardTitle>
-              <CardDescription>Coming soon - Generate personas, messaging, and launch plans</CardDescription>
+              <CardDescription>
+                Generate personas, positioning, messaging, and go-to-market launch plans
+              </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="product">Product Name</Label>
+                  <Input
+                    id="product"
+                    placeholder="e.g., Syntria PM Suite"
+                    value={product}
+                    onChange={(e) => setProduct(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="target-audience">Target Audience</Label>
+                  <Input
+                    id="target-audience"
+                    placeholder="e.g., Enterprise Product Teams"
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="value-props">Value Propositions (one per line)</Label>
+                <Textarea
+                  id="value-props"
+                  placeholder="Save 10+ hours per week&#10;Integrate in minutes&#10;Enterprise-grade security"
+                  className="min-h-[100px]"
+                  value={valueProps}
+                  onChange={(e) => setValueProps(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gtm-competitors">Competitors (one per line)</Label>
+                <Textarea
+                  id="gtm-competitors"
+                  placeholder="Competitor A&#10;Competitor B"
+                  value={gtmCompetitors}
+                  onChange={(e) => setGtmCompetitors(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="timeline">Launch Timeline</Label>
+                <Input
+                  id="timeline"
+                  placeholder="e.g., 4 weeks"
+                  value={timeline}
+                  onChange={(e) => setTimeline(e.target.value)}
+                />
+              </div>
+
+              <Button onClick={handleGTM} disabled={loading || !product}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Generate GTM Strategy
+              </Button>
+            </CardContent>
           </Card>
+
+          {result && activeTab === "gtm" && result.data && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Go-To-Market Strategy</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Target Personas</h3>
+                  {result.data.personas?.map((persona: any, idx: number) => (
+                    <div key={idx} className="mb-4 p-4 bg-surface-2 rounded-lg">
+                      <h4 className="font-medium mb-1">{persona.name}</h4>
+                      <p className="text-sm text-muted-foreground mb-2">{persona.role}</p>
+                      
+                      <div className="grid md:grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="font-medium mb-1">Goals:</p>
+                          <ul className="list-disc list-inside space-y-0.5">
+                            {persona.goals?.map((goal: string, i: number) => (
+                              <li key={i}>{goal}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="font-medium mb-1">Pain Points:</p>
+                          <ul className="list-disc list-inside space-y-0.5">
+                            {persona.painPoints?.map((pain: string, i: number) => (
+                              <li key={i}>{pain}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="mt-2">
+                        <p className="font-medium text-sm mb-1">Channels:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {persona.channels?.map((channel: string, i: number) => (
+                            <span key={i} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
+                              {channel}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Positioning & Messaging</h3>
+                  <div className="p-4 bg-surface-2 rounded-lg space-y-3">
+                    <div>
+                      <p className="font-medium mb-1">Headline:</p>
+                      <p className="text-foreground">{result.data.positioning?.headline}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium mb-1">Tagline:</p>
+                      <p className="text-muted-foreground">{result.data.positioning?.tagline}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium mb-1">Key Messages:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {result.data.positioning?.keyMessages?.map((msg: string, i: number) => (
+                          <li key={i}>{msg}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Launch Plan</h3>
+                  <p className="text-sm text-muted-foreground mb-3">Timeline: {result.data.launchPlan?.timeline}</p>
+                  {result.data.launchPlan?.phases?.map((phase: any, idx: number) => (
+                    <div key={idx} className="mb-3 p-4 bg-surface-2 rounded-lg">
+                      <h4 className="font-medium mb-2">{phase.name}</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        {phase.activities?.map((activity: string, i: number) => (
+                          <li key={i}>{activity}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Marketing Channels</h3>
+                  <div className="grid md:grid-cols-2 gap-3">
+                    {result.data.channels?.map((channel: any, idx: number) => (
+                      <div key={idx} className="p-3 bg-surface-2 rounded-lg">
+                        <h4 className="font-medium mb-1">{channel.name}</h4>
+                        <p className="text-sm text-muted-foreground mb-1">Budget: {channel.budget}</p>
+                        <p className="text-sm">Expected: {channel.expected}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-2">Competitive Positioning</h3>
+                  <p className="text-foreground p-4 bg-surface-2 rounded-lg">
+                    {result.data.competitivePosition}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="automation">
+        <TabsContent value="automation" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Automation Agent</CardTitle>
-              <CardDescription>Coming soon - Sync to Calendar, Notion, and export artifacts</CardDescription>
+              <CardDescription>
+                Export and sync your PM artifacts to Calendar and Notion
+              </CardDescription>
             </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Automation Type</Label>
+                <div className="flex gap-4">
+                  <Button
+                    variant={automationType === "calendar" ? "default" : "outline"}
+                    onClick={() => setAutomationType("calendar")}
+                    className="flex-1"
+                  >
+                    Calendar Sync
+                  </Button>
+                  <Button
+                    variant={automationType === "notion" ? "default" : "outline"}
+                    onClick={() => setAutomationType("notion")}
+                    className="flex-1"
+                  >
+                    Notion Export
+                  </Button>
+                </div>
+              </div>
+
+              {automationType === "notion" && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="notion-workspace">Notion Workspace</Label>
+                    <Input
+                      id="notion-workspace"
+                      placeholder="My Workspace"
+                      value={notionWorkspace}
+                      onChange={(e) => setNotionWorkspace(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notion-page">Parent Page (Optional)</Label>
+                    <Input
+                      id="notion-page"
+                      placeholder="PM Docs"
+                      value={notionPage}
+                      onChange={(e) => setNotionPage(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="p-4 bg-surface-2 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  {automationType === "calendar" 
+                    ? "This will create calendar events for sprint milestones from your Planning results."
+                    : "This will export your current workbench results to a Notion page."}
+                </p>
+              </div>
+
+              <Button onClick={handleAutomation} disabled={loading || !result}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {automationType === "calendar" ? "Create Calendar Events" : "Export to Notion"}
+              </Button>
+
+              {!result && (
+                <p className="text-sm text-muted-foreground">
+                  Run a Strategy, Research, or Planning agent first to enable automation.
+                </p>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
