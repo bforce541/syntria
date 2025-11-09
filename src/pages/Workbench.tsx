@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Target, Search, ListChecks, Megaphone, Download } from "lucide-react";
 import { runStrategyAgent, runResearchAgent, runPlanningAgent, runGTMAgent, syncStrategyToCalendar } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function Workbench() {
   const { toast } = useToast();
@@ -53,9 +52,19 @@ export default function Workbench() {
       
       // Automatically sync to calendar via n8n
       try {
-        const { data: syncData } = await supabase.functions.invoke('sync-to-calendar', {
-          body: { strategyData: response.data }
+        const syncResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-to-calendar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ strategyData: response.data }),
         });
+        
+        if (!syncResponse.ok) {
+          throw new Error('Sync failed');
+        }
+        
+        const syncData = await syncResponse.json();
         
         toast({
           title: "Strategy Generated & Synced",
