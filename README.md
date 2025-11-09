@@ -1,8 +1,8 @@
-# ProductBoardIQ
+# Syntria
 
 > AI agents for product leaders — from onboarding to execution
 
-ProductBoardIQ combines a lightweight vendor/client onboarding hub with a Product Manager AI workbench powered by multi-agent automation.
+Syntria combines a lightweight vendor/client onboarding hub with a Product Manager AI workbench powered by multi-agent automation.
 
 ## Features
 
@@ -30,7 +30,7 @@ ProductBoardIQ combines a lightweight vendor/client onboarding hub with a Produc
 ```bash
 # 1. Clone the repository
 git clone <your-repo-url>
-cd productboardiq
+cd syntria
 
 # 2. Install dependencies
 npm install

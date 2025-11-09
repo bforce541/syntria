@@ -27,7 +27,7 @@ export const TopBar = () => {
           <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-primary-foreground" />
           </div>
-          <span className="font-heading font-bold text-lg">ProductBoardIQ</span>
+          <span className="font-heading font-bold text-lg">Syntria</span>
         </div>
 
         {projects.length > 0 && (

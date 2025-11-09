@@ -1,4 +1,4 @@
-// Typed API client for ProductBoardIQ
+// Typed API client for Syntria
 
 const API_BASE = '/api';
 

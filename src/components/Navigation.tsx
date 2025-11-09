@@ -44,7 +44,7 @@ export const Navigation = () => {
       
       <div className="p-4 border-t border-border">
         <p className="text-xs text-muted-foreground">
-          ProductBoardIQ v1.0
+          Syntria v1.0
         </p>
       </div>
     </nav>

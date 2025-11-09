@@ -1,4 +1,4 @@
-// Core types for ProductBoardIQ
+// Core types for Syntria
 
 export type AIProvider = 'gemini' | 'openai';
 

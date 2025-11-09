@@ -21,7 +21,7 @@ export default function Overview() {
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            From onboarding to execution. ProductBoardIQ combines multi-agent AI automation 
+            From onboarding to execution. Syntria combines multi-agent AI automation 
             with enterprise-grade compliance tools.
           </p>
 
@@ -81,11 +81,11 @@ export default function Overview() {
         </div>
       </section>
 
-      {/* Why ProductBoardIQ */}
+      {/* Why Syntria */}
       <section className="container mx-auto px-6 py-16">
         <Card className="bg-gradient-surface border-border">
           <CardHeader>
-            <CardTitle className="font-heading text-3xl">Why ProductBoardIQ?</CardTitle>
+            <CardTitle className="font-heading text-3xl">Why Syntria?</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-6">
